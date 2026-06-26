@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>コーディネートAI</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="quiz.css">
+    <link rel="stylesheet" href="gift.css">
+</head>
+<body>
+    <div class="floating-wardrobe" aria-hidden="true">
+        <div class="float-piece float-piece-dress">
+            <svg viewBox="0 0 96 96" role="img" focusable="false">
+                <path d="M35 14h26l6 18 18 48H11l18-48 6-18Z" />
+                <path d="M35 14c2 9 6 14 13 14s11-5 13-14" />
+                <path d="M29 32h38M23 62h50" />
+            </svg>
+        </div>
+        <div class="float-piece float-piece-jacket">
+            <svg viewBox="0 0 96 96" role="img" focusable="false">
+                <path d="M34 18h28l14 12v52H20V30l14-12Z" />
+                <path d="M34 18l14 17 14-17" />
+                <path d="M48 35v47" />
+                <path d="M31 50h10M55 50h10" />
+            </svg>
+        </div>
+        <div class="float-piece float-piece-pants">
+            <svg viewBox="0 0 96 96" role="img" focusable="false">
+                <path d="M29 14h38l-2 68H52l-4-37-4 37H31L29 14Z" />
+                <path d="M29 26h38" />
+                <path d="M48 26v19" />
+                <path d="M37 20h6M53 20h6" />
+            </svg>
+        </div>
+        <div class="float-piece float-piece-sneaker">
+            <svg viewBox="0 0 96 96" role="img" focusable="false">
+                <path d="M20 58c11 0 17-7 22-18h13c4 12 12 18 25 21l3 10H18l2-13Z" />
+                <path d="M24 58h59" />
+                <path d="M45 43l-8 10M56 44l-8 10" />
+            </svg>
+        </div>
+        <div class="float-piece float-piece-shirt">
+            <svg viewBox="0 0 96 96" role="img" focusable="false">
+                <path d="M33 15h30l10 11 14 5-8 20-13-5v36H30V46l-13 5-8-20 14-5 10-11Z" />
+                <path d="M36 15l12 15 12-15" />
+                <path d="M48 30v52M38 44h6M52 44h6" />
+            </svg>
+        </div>
+        <div class="float-piece float-piece-hat">
+            <svg viewBox="0 0 96 96" role="img" focusable="false">
+                <path d="M22 56c4-18 19-29 37-25 13 3 21 12 23 25H22Z" />
+                <path d="M11 57h74c6 0 10 3 11 9H10c1-6 4-9 11-9Z" />
+                <path d="M34 55c4-9 13-15 27-14" />
+            </svg>
+        </div>
+        <div class="float-piece float-piece-tshirt">
+            <svg viewBox="0 0 96 96" role="img" focusable="false">
+                <path d="M35 16h26l8 9 17 6-8 20-12-5v36H30V46l-12 5-8-20 17-6 8-9Z" />
+                <path d="M38 16c2 7 6 10 10 10s8-3 10-10" />
+                <path d="M30 46v36h36V46" />
+            </svg>
+        </div>
+        <div class="float-piece float-piece-skirt">
+            <svg viewBox="0 0 96 96" role="img" focusable="false">
+                <path d="M27 18h42l4 14H23l4-14Z" />
+                <path d="M24 32h48l12 48H12l12-48Z" />
+                <path d="M36 34l-5 44M48 34v44M60 34l5 44" />
+            </svg>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <div class="gift-hero-copy">
+                <p>Weather-aware outfit planner</p>
+                <h1>コーディネートAI</h1>
+            </div>
+            <div class="gift-closet-illustration" aria-hidden="true">
+                <svg viewBox="0 0 220 128" role="img" focusable="false">
+                    <path class="closet-svg-rail" d="M26 22h168" />
+                    <path class="closet-svg-hanger" d="M75 22c0-10 16-12 16 0m-8 0v13m-35 0 35-13 35 13" />
+                    <path class="closet-svg-hanger" d="M150 22c0-10 16-12 16 0m-8 0v13m-31 0 31-13 31 13" />
+                    <path class="closet-svg-shirt" d="M48 38h70l13 13 21 7-11 27-18-6v34H43V79l-18 6-11-27 21-7 13-13Z" />
+                    <path class="closet-svg-detail" d="M52 38c7 12 16 18 31 18s24-6 31-18" />
+                    <path class="closet-svg-pants" d="M136 38h44l-3 75h-16l-3-42-7 42h-16l1-75Z" />
+                    <path class="closet-svg-detail" d="M136 51h44m-22 0v20" />
+                </svg>
+            </div>
+        </div>
+
+        <div class="quiz-container gift-container">
+            <div class="quiz-setup" id="giftSetup">
+                <div class="gift-section-head">
+                    <div>
+                        <p>Outfit recipe</p>
+                        <h2>条件入力</h2>
+                    </div>
+                    <span>3案生成</span>
+                </div>
+
+                <div class="gift-form-block">
+                    <h3>基本情報</h3>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="gender">性別:</label>
+                            <select id="gender">
+                                <option value="女性">女性</option>
+                                <option value="男性">男性</option>
+                                <option value="その他・指定なし">その他・指定なし</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="age">年齢:</label>
+                            <input type="number" id="age" min="1" max="120" value="20">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="gift-form-block">
+                    <h3>天気</h3>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="temperature">今日の気温:</label>
+                            <input type="number" id="temperature" min="-40" max="50" value="20">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="weather">今日の天気:</label>
+                            <select id="weather">
+                                <option value="晴れ">晴れ</option>
+                                <option value="曇り">曇り</option>
+                                <option value="雨">雨</option>
+                                <option value="雪">雪</option>
+                                <option value="風が強い">風が強い</option>
+                                <option value="蒸し暑い">蒸し暑い</option>
+                                <option value="寒暖差が大きい">寒暖差が大きい</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="occasion">予定:</label>
+                        <select id="occasion">
+                            <option value="通学・通勤">通学・通勤</option>
+                            <option value="友達と外出">友達と外出</option>
+                            <option value="デート">デート</option>
+                            <option value="買い物">買い物</option>
+                            <option value="屋外で過ごす">屋外で過ごす</option>
+                            <option value="おまかせ">おまかせ</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="style">雰囲気:</label>
+                        <select id="style">
+                            <option value="おまかせ">おまかせ</option>
+                            <option value="カジュアル">カジュアル</option>
+                            <option value="きれいめ">きれいめ</option>
+                            <option value="シンプル">シンプル</option>
+                            <option value="かわいい">かわいい</option>
+                            <option value="大人っぽい">大人っぽい</option>
+                            <option value="スポーティー">スポーティー</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="notes">補足:</label>
+                    <input type="text" id="notes" maxlength="160" placeholder="例: 歩く時間が長い、冷房が苦手、黒い服が好き">
+                </div>
+
+                <div class="form-group">
+                    <button class="btn gift-submit" onclick="generateOutfits()">コーディネートを生成</button>
+                </div>
+            </div>
+
+            <div class="quiz-results" id="giftResults">
+                <div class="gift-section-head">
+                    <div>
+                        <p>Your looks</p>
+                        <h2>コーディネート案</h2>
+                    </div>
+                    <span id="resultCount">3案</span>
+                </div>
+                <div id="giftList"></div>
+                <button class="btn gift-restart" onclick="restartGift()">条件を変えて作り直す</button>
+            </div>
+        </div>
+
+        <div class="status" id="status">準備完了</div>
+        <div class="loading" id="loading">コーディネートを生成中...</div>
+    </div>
+
+    <script>
+        let outfitData = [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStatus('コーディネートを生成できます', '#28a745');
+        });
+
+        function updateStatus(message, color) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.style.color = color;
+        }
+
+        async function generateOutfits() {
+            const gender = document.getElementById('gender').value;
+            const age = parseInt(document.getElementById('age').value);
+            const temperature = parseInt(document.getElementById('temperature').value);
+            const weather = document.getElementById('weather').value;
+            const occasion = document.getElementById('occasion').value;
+            const style = document.getElementById('style').value;
+            const notes = document.getElementById('notes').value.trim() || 'なし';
+
+            if (!gender || !weather || !occasion || !style || !Number.isInteger(age) || age < 1 || !Number.isInteger(temperature) || temperature < -40 || temperature > 50) {
+                alert('すべての項目を正しく入力してください');
+                return;
+            }
+
+            document.getElementById('loading').classList.add('show');
+            updateStatus('コーディネートを生成中...', '#856404');
+
+            try {
+                const response = await fetch('/api/outfits', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        gender: gender,
+                        age: age,
+                        temperature: temperature,
+                        weather: weather,
+                        occasion: occasion,
+                        style: style,
+                        notes: notes
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'API error');
+                }
+
+                const data = await response.json();
+                outfitData = data.data;
+
+                if (!Array.isArray(outfitData) || outfitData.length === 0) {
+                    throw new Error('Invalid outfit data format');
+                }
+
+                showOutfits();
+                updateStatus('コーディネートを生成しました', '#28a745');
+            } catch (error) {
+                console.error('Error:', error);
+                updateStatus('Generation failed', '#dc3545');
+                alert('コーディネートの生成に失敗しました: ' + error.message);
+            } finally {
+                document.getElementById('loading').classList.remove('show');
+            }
+        }
+
+        function showOutfits() {
+            document.getElementById('giftSetup').style.display = 'none';
+            document.getElementById('giftResults').style.display = 'block';
+
+            const giftList = document.getElementById('giftList');
+            giftList.innerHTML = '';
+
+            outfitData.forEach((outfit, index) => {
+                const item = document.createElement('div');
+                item.className = 'gift-result-card';
+                item.innerHTML = `
+                    <div class="gift-result-top">
+                        <span class="gift-number">${index + 1}</span>
+                        <div>
+                            <h3>${escapeHtml(outfit.name)}</h3>
+                            <div class="gift-meta">
+                                <span>${escapeHtml(outfit.style)}</span>
+                                <strong>${escapeHtml(outfit.weatherFit)}</strong>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="gift-reason">${escapeHtml(outfit.summary)}</p>
+                    <div class="gift-detail-grid">
+                        <section>
+                            <h4>トップス</h4>
+                            <p>${escapeHtml(outfit.tops)}</p>
+                        </section>
+                        <section>
+                            <h4>ボトムス</h4>
+                            <p>${escapeHtml(outfit.bottoms)}</p>
+                        </section>
+                        <section>
+                            <h4>靴・小物</h4>
+                            <p>${escapeHtml(outfit.shoesAndAccessories)}</p>
+                        </section>
+                        <section>
+                            <h4>羽織り・防寒</h4>
+                            <p>${escapeHtml(outfit.outerwear)}</p>
+                        </section>
+                        <section>
+                            <h4>天気対策</h4>
+                            <p>${escapeHtml(outfit.weatherTip)}</p>
+                        </section>
+                        <section>
+                            <h4>仕上げ</h4>
+                            <p>${escapeHtml(outfit.stylingTip)}</p>
+                        </section>
+                    </div>
+                `;
+                giftList.appendChild(item);
+            });
+        }
+
+        function restartGift() {
+            document.getElementById('giftResults').style.display = 'none';
+            document.getElementById('giftSetup').style.display = 'block';
+            outfitData = [];
+            updateStatus('コーディネートを生成できます', '#28a745');
+        }
+
+        function escapeHtml(value) {
+            return String(value || '').replace(/[&<>"']/g, function(char) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;'
+                }[char];
+            });
+        }
+    </script>
+</body>
+</html>

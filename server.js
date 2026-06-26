@@ -5,6 +5,7 @@ require('dotenv').config({ path: '.env.local' });
 
 const app = express();
 const PORT = process.env.PORT || 8080;
+const HOST = process.env.HOST || '127.0.0.1';
 
 app.use(express.json());
 app.use(express.static('public'));
@@ -25,6 +26,14 @@ try {
     promptTemplate = fs.readFileSync('prompt.md', 'utf8');
 } catch (error) {
     console.error('Error reading prompt.md:', error);
+    process.exit(1);
+}
+
+let outfitPromptTemplate;
+try {
+    outfitPromptTemplate = fs.readFileSync('gift-prompt.md', 'utf8');
+} catch (error) {
+    console.error('Error reading gift-prompt.md:', error);
     process.exit(1);
 }
 
@@ -81,6 +90,30 @@ app.post('/api/', async (req, res) => {
     }
 });
 
+app.post('/api/outfits', handleOutfitRequest);
+// 旧URLからの呼び出しが残っていても同じ処理で受ける
+app.post('/api/gifts', handleOutfitRequest);
+
+async function handleOutfitRequest(req, res) {
+    try {
+        const input = validateOutfitRequest(req.body);
+        const finalPrompt = fillTemplate(outfitPromptTemplate, input);
+        const recommendations = await callOpenAI(finalPrompt);
+        res.json({
+            title: 'コーディネートAI',
+            data: recommendations,
+        });
+    } catch (error) {
+        console.error('Outfit API Error:', error);
+        const status = error.statusCode || 500;
+        res.status(status).json({
+            error: status === 400
+                ? error.message
+                : 'コーディネートの生成に失敗しました。サーバーログを確認してください。'
+        });
+    }
+}
+
 // prompt.md 内の ${key} を variables の値で安全に置換する
 function fillTemplate(template, variables) {
     return template.replace(/\$\{(\w+)\}/g, (match, key) => {
@@ -88,6 +121,50 @@ function fillTemplate(template, variables) {
             ? String(variables[key])
             : match; // 対応する値がなければそのまま残す
     });
+}
+
+function validateOutfitRequest(body) {
+    const gender = cleanText(body.gender, 20);
+    const age = Number(body.age);
+    const temperature = Number(body.temperature);
+    const weather = cleanText(body.weather, 40);
+    const occasion = cleanText(body.occasion, 60);
+    const style = cleanText(body.style, 60);
+    const notes = cleanText(body.notes || '', 160);
+
+    if (!gender) {
+        throwBadRequest('gender is required');
+    }
+    if (!Number.isInteger(age) || age < 1 || age > 120) {
+        throwBadRequest('age must be an integer between 1 and 120');
+    }
+    if (!Number.isInteger(temperature) || temperature < -40 || temperature > 50) {
+        throwBadRequest('temperature must be an integer between -40 and 50');
+    }
+    if (!weather) {
+        throwBadRequest('weather is required');
+    }
+    if (!occasion) {
+        throwBadRequest('occasion is required');
+    }
+    if (!style) {
+        throwBadRequest('style is required');
+    }
+
+    return { gender, age, temperature, weather, occasion, style, notes };
+}
+
+function cleanText(value, maxLength) {
+    if (typeof value !== 'string') {
+        return '';
+    }
+    return value.trim().replace(/\s+/g, ' ').slice(0, maxLength);
+}
+
+function throwBadRequest(message) {
+    const error = new Error(message);
+    error.statusCode = 400;
+    throw error;
 }
 
 async function callOpenAI(prompt) {
@@ -170,7 +247,7 @@ function extractArray(responseText) {
     return arrayData;
 }
 
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+app.listen(PORT, HOST, () => {
+    console.log(`Server running on http://${HOST}:${PORT}`);
     console.log(`Config: ${PROVIDER} - ${MODEL}`);
 });

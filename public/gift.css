@@ -1,0 +1,576 @@
+:root {
+    --wardrobe-ink: #26313b;
+    --wardrobe-muted: #64717d;
+    --wardrobe-line: #d8e0e6;
+    --wardrobe-paper: #f8fafb;
+    --wardrobe-panel: #ffffff;
+    --wardrobe-steel: #334a5f;
+    --wardrobe-blue: #476f91;
+    --wardrobe-teal: #5d8f85;
+    --wardrobe-clay: #b87955;
+    --wardrobe-shadow: rgba(34, 45, 55, 0.12);
+}
+
+body {
+    color: var(--wardrobe-ink);
+    background:
+        linear-gradient(90deg, rgba(51, 74, 95, 0.06) 0 1px, transparent 1px 100%),
+        linear-gradient(180deg, rgba(51, 74, 95, 0.05) 0 1px, transparent 1px 100%),
+        linear-gradient(135deg, #f5f7f8 0%, #eef4f2 48%, #f7f4f1 100%);
+    background-size: 44px 44px, 44px 44px, auto;
+    overflow-x: hidden;
+}
+
+.container {
+    position: relative;
+    z-index: 1;
+}
+
+.floating-wardrobe {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.float-piece {
+    position: absolute;
+    width: 92px;
+    height: 92px;
+    opacity: 0.62;
+    filter: drop-shadow(0 16px 18px rgba(34, 45, 55, 0.14));
+    animation: wardrobeFloat 8s ease-in-out infinite;
+}
+
+.float-piece svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.float-piece path {
+    fill: rgba(255, 255, 255, 0.82);
+    stroke: var(--wardrobe-steel);
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.float-piece path + path {
+    fill: none;
+    stroke: rgba(51, 74, 95, 0.62);
+    stroke-width: 3;
+}
+
+.float-piece-dress {
+    top: 118px;
+    left: max(12px, calc(50% - 540px));
+    animation-delay: -1.5s;
+}
+
+.float-piece-dress path:first-child {
+    fill: #e8f2f0;
+}
+
+.float-piece-jacket {
+    top: 30%;
+    right: max(10px, calc(50% - 560px));
+    animation-delay: -4s;
+}
+
+.float-piece-jacket path:first-child {
+    fill: #e8edf2;
+}
+
+.float-piece-pants {
+    bottom: 126px;
+    left: max(20px, calc(50% - 590px));
+    animation-delay: -6s;
+}
+
+.float-piece-pants path:first-child {
+    fill: #f2eee8;
+}
+
+.float-piece-sneaker {
+    bottom: 52px;
+    right: max(20px, calc(50% - 520px));
+    animation-delay: -2.8s;
+}
+
+.float-piece-sneaker path:first-child {
+    fill: #eef3f7;
+}
+
+.float-piece-shirt {
+    top: 56%;
+    left: max(18px, calc(50% - 470px));
+    width: 86px;
+    height: 86px;
+    animation-delay: -3.2s;
+}
+
+.float-piece-shirt path:first-child {
+    fill: #edf3e8;
+}
+
+.float-piece-hat {
+    top: 68px;
+    right: max(18px, calc(50% - 430px));
+    width: 78px;
+    height: 78px;
+    animation-delay: -5.2s;
+}
+
+.float-piece-hat path:first-child,
+.float-piece-hat path:nth-child(2) {
+    fill: #f2eee8;
+}
+
+.float-piece-tshirt {
+    top: 22%;
+    left: max(24px, calc(50% - 390px));
+    width: 80px;
+    height: 80px;
+    animation-delay: -7s;
+}
+
+.float-piece-tshirt path:first-child {
+    fill: #e8edf2;
+}
+
+.float-piece-skirt {
+    bottom: 182px;
+    right: max(28px, calc(50% - 390px));
+    width: 82px;
+    height: 82px;
+    animation-delay: -0.8s;
+}
+
+.float-piece-skirt path:first-child,
+.float-piece-skirt path:nth-child(2) {
+    fill: #f2eee8;
+}
+
+@keyframes wardrobeFloat {
+    0%,
+    100% {
+        transform: translate3d(0, 0, 0) rotate(-2deg);
+    }
+    50% {
+        transform: translate3d(0, -18px, 0) rotate(3deg);
+    }
+}
+
+.header {
+    position: relative;
+    overflow: hidden;
+    min-height: 150px;
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 251, 0.94)),
+        linear-gradient(90deg, rgba(71, 111, 145, 0.16), rgba(93, 143, 133, 0.13));
+    border: 1px solid rgba(51, 74, 95, 0.14);
+    border-radius: 8px;
+    box-shadow: 0 18px 44px var(--wardrobe-shadow);
+}
+
+.header::after {
+    content: "";
+    position: absolute;
+    left: 24px;
+    right: 24px;
+    bottom: 18px;
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent, rgba(51, 74, 95, 0.18), transparent);
+}
+
+.gift-hero-copy {
+    position: relative;
+    z-index: 1;
+}
+
+.gift-hero-copy p {
+    margin: 0 0 4px;
+    color: var(--wardrobe-blue);
+    font-size: 0.86rem;
+    font-weight: 800;
+    line-height: 1.4;
+}
+
+.header h1 {
+    color: var(--wardrobe-steel);
+    letter-spacing: 0;
+    line-height: 1.15;
+}
+
+.header h1::before {
+    content: "";
+    display: inline-block;
+    width: 24px;
+    height: 18px;
+    margin-right: 10px;
+    border: 3px solid var(--wardrobe-blue);
+    border-top: 0;
+    border-radius: 0 0 8px 8px;
+    box-shadow: inset 0 6px 0 rgba(93, 143, 133, 0.22);
+    vertical-align: middle;
+}
+
+.gift-closet-illustration {
+    position: relative;
+    z-index: 1;
+    width: 220px;
+    height: 128px;
+    flex: 0 0 220px;
+}
+
+.gift-closet-illustration svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.closet-svg-rail,
+.closet-svg-hanger,
+.closet-svg-detail {
+    fill: none;
+    stroke: rgba(51, 74, 95, 0.58);
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.closet-svg-rail {
+    stroke: var(--wardrobe-clay);
+}
+
+.closet-svg-shirt,
+.closet-svg-pants {
+    stroke: var(--wardrobe-steel);
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.closet-svg-shirt {
+    fill: #e8f2f0;
+}
+
+.closet-svg-pants {
+    fill: #e8edf2;
+}
+
+.quiz-container,
+.status,
+.loading {
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid rgba(51, 74, 95, 0.14);
+    border-radius: 8px;
+    box-shadow: 0 16px 36px rgba(34, 45, 55, 0.11);
+}
+
+.gift-container {
+    padding: 28px;
+}
+
+.gift-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 22px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--wardrobe-line);
+}
+
+.gift-section-head p {
+    margin: 0 0 4px;
+    color: var(--wardrobe-blue);
+    font-size: 0.75rem;
+    font-weight: 900;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}
+
+.gift-section-head h2 {
+    color: var(--wardrobe-ink);
+    font-size: 1.35rem;
+    line-height: 1.2;
+}
+
+.gift-section-head span {
+    flex: 0 0 auto;
+    border-radius: 999px;
+    background: #e8f2f0;
+    color: var(--wardrobe-steel);
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    font-weight: 800;
+}
+
+.gift-form-block {
+    margin-bottom: 22px;
+    padding: 18px;
+    border: 1px solid var(--wardrobe-line);
+    border-radius: 8px;
+    background: var(--wardrobe-paper);
+}
+
+.gift-form-block h3 {
+    margin: 0 0 16px;
+    color: var(--wardrobe-steel);
+    font-size: 1rem;
+    line-height: 1.25;
+}
+
+.gift-form-block h3::before {
+    content: "";
+    display: inline-block;
+    width: 16px;
+    height: 10px;
+    margin-right: 8px;
+    border: 2px solid var(--wardrobe-teal);
+    border-top: 0;
+    border-radius: 0 0 6px 6px;
+}
+
+.form-group label {
+    color: var(--wardrobe-ink);
+}
+
+.form-group input,
+.form-group select {
+    border-color: var(--wardrobe-line);
+    background: #fff;
+    color: var(--wardrobe-ink);
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    border-color: var(--wardrobe-blue);
+    box-shadow: 0 0 0 3px rgba(71, 111, 145, 0.12);
+}
+
+.btn {
+    background: linear-gradient(135deg, var(--wardrobe-steel) 0%, var(--wardrobe-teal) 100%);
+    border-radius: 8px;
+    box-shadow: 0 10px 20px rgba(51, 74, 95, 0.18);
+}
+
+.btn:hover {
+    box-shadow: 0 14px 26px rgba(51, 74, 95, 0.24);
+}
+
+.gift-submit,
+.gift-restart {
+    width: 100%;
+}
+
+.loading {
+    color: var(--wardrobe-steel);
+}
+
+#giftList {
+    display: grid;
+    gap: 18px;
+    margin-bottom: 22px;
+}
+
+.gift-result-card {
+    position: relative;
+    overflow: hidden;
+    padding: 22px;
+    border: 1px solid var(--wardrobe-line);
+    border-radius: 8px;
+    background: linear-gradient(180deg, #fff 0%, #f9fbfb 100%);
+    box-shadow: 0 10px 24px rgba(34, 45, 55, 0.08);
+}
+
+.gift-result-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    border-radius: 8px 8px 0 0;
+    background: linear-gradient(90deg, var(--wardrobe-steel), var(--wardrobe-blue), var(--wardrobe-teal), var(--wardrobe-clay));
+}
+
+.gift-result-card::after {
+    content: "";
+    position: absolute;
+    right: 18px;
+    top: 20px;
+    width: 44px;
+    height: 34px;
+    border: 2px solid rgba(51, 74, 95, 0.14);
+    border-top: 0;
+    border-radius: 0 0 10px 10px;
+    box-shadow: inset 0 9px 0 rgba(93, 143, 133, 0.12);
+}
+
+.gift-result-card > * {
+    position: relative;
+    z-index: 1;
+}
+
+.gift-result-top {
+    display: grid;
+    grid-template-columns: 42px 1fr;
+    gap: 14px;
+    align-items: start;
+    margin-bottom: 14px;
+}
+
+.gift-number {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--wardrobe-steel);
+    color: #fff;
+    font-weight: 900;
+    box-shadow: 0 8px 16px rgba(51, 74, 95, 0.22);
+}
+
+.gift-result-card h3 {
+    color: var(--wardrobe-steel);
+    font-size: 1.18rem;
+    line-height: 1.35;
+    margin: 0 0 8px;
+}
+
+.gift-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.gift-meta span,
+.gift-meta strong {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 0.86rem;
+}
+
+.gift-meta span {
+    background: #eef4f2;
+    color: #3f665f;
+}
+
+.gift-meta strong {
+    background: #e8edf2;
+    color: var(--wardrobe-steel);
+}
+
+.gift-reason {
+    border-left: 4px solid var(--wardrobe-teal);
+    background: #f3f7f6;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+}
+
+.gift-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.gift-detail-grid section {
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.84);
+    border: 1px solid var(--wardrobe-line);
+    padding: 12px;
+    min-width: 0;
+}
+
+.gift-detail-grid h4 {
+    color: var(--wardrobe-ink);
+    font-size: 0.88rem;
+    margin: 0 0 6px;
+}
+
+.gift-detail-grid h4::before {
+    content: "";
+    display: inline-block;
+    width: 10px;
+    height: 7px;
+    margin-right: 7px;
+    border: 2px solid var(--wardrobe-blue);
+    border-top: 0;
+    border-radius: 0 0 5px 5px;
+}
+
+.gift-result-card p {
+    color: #3d4a56;
+    font-weight: 500;
+    margin: 0;
+    line-height: 1.65;
+    overflow-wrap: anywhere;
+}
+
+.gift-result-card strong {
+    color: var(--wardrobe-ink);
+}
+
+@media (max-width: 768px) {
+    .floating-wardrobe {
+        opacity: 0.38;
+    }
+
+    .float-piece {
+        width: 70px;
+        height: 70px;
+    }
+
+    .header {
+        align-items: flex-start;
+        min-height: 132px;
+    }
+
+    .header h1::before {
+        margin-right: 6px;
+    }
+
+    .gift-closet-illustration {
+        width: 136px;
+        height: 94px;
+        flex-basis: 136px;
+    }
+
+    .gift-container {
+        padding: 20px;
+    }
+
+    .gift-section-head {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .gift-form-block {
+        padding: 16px;
+    }
+
+    .gift-result-top {
+        grid-template-columns: 36px 1fr;
+        gap: 12px;
+    }
+
+    .gift-number {
+        width: 36px;
+        height: 36px;
+    }
+
+    .gift-detail-grid {
+        grid-template-columns: 1fr;
+    }
+}
