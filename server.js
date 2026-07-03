@@ -5,7 +5,7 @@ require('dotenv').config({ path: '.env.local' });
 
 const app = express();
 const PORT = process.env.PORT || 8080;
-const HOST = process.env.HOST || '127.0.0.1';
+const HOST = process.env.HOST || '0.0.0.0';
 
 app.use(express.json());
 app.use(express.static('public'));
