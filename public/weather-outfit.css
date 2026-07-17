@@ -1,0 +1,263 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: Arial, 'Hiragino Kaku Gothic ProN', 'Yu Gothic', Meiryo, sans-serif;
+    color: #24303a;
+    background:
+        linear-gradient(90deg, rgba(42, 82, 104, 0.08) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(42, 82, 104, 0.07) 1px, transparent 1px),
+        #f4f7f8;
+    background-size: 28px 28px;
+}
+
+button,
+input,
+select {
+    font: inherit;
+}
+
+button {
+    border: 0;
+    border-radius: 8px;
+    min-height: 42px;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.app-shell {
+    width: min(1120px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: 28px 0;
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 16px;
+}
+
+.control-panel,
+.weather-panel,
+.outfit-panel {
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid #d8e2e7;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 14px 34px rgba(38, 55, 68, 0.08);
+}
+
+.outfit-panel {
+    grid-column: 1 / -1;
+}
+
+.title-block p,
+.section-head p {
+    margin: 0 0 4px;
+    color: #52738a;
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+h1,
+h2,
+h3 {
+    margin: 0;
+    line-height: 1.2;
+}
+
+h1 {
+    font-size: 1.8rem;
+}
+
+h2 {
+    font-size: 1.25rem;
+}
+
+.planner-form {
+    margin-top: 22px;
+    display: grid;
+    gap: 16px;
+}
+
+.planner-form label {
+    display: grid;
+    gap: 7px;
+    font-weight: 700;
+}
+
+input,
+select {
+    width: 100%;
+    min-height: 42px;
+    border: 1px solid #c9d5dc;
+    border-radius: 8px;
+    padding: 9px 11px;
+    background: #fff;
+    color: #24303a;
+}
+
+.location-row {
+    display: grid;
+    grid-template-columns: 1fr 92px;
+    gap: 8px;
+}
+
+.location-row button {
+    background: #e8eff3;
+    color: #2d4e63;
+}
+
+.primary-button {
+    color: #fff;
+    background: #2f6f89;
+}
+
+.section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.section-head span {
+    flex: 0 0 auto;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #e8eff3;
+    color: #2d4e63;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.weather-card {
+    margin-top: 18px;
+    min-height: 150px;
+    border-radius: 8px;
+    padding: 18px;
+    background: linear-gradient(135deg, #eaf4f7, #f8fbfc);
+    border: 1px solid #d3e2e8;
+}
+
+.weather-card strong {
+    display: block;
+    font-size: 1.05rem;
+}
+
+.weather-card p {
+    margin: 6px 0 0;
+    color: #5d6a72;
+}
+
+.weather-main {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.temperature {
+    flex: 0 0 auto;
+    color: #2f6f89;
+    font-size: 3rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.temperature span {
+    font-size: 1rem;
+}
+
+.weather-detail {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
+.weather-detail span {
+    padding: 9px;
+    border-radius: 8px;
+    background: #fff;
+    color: #3f4d56;
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+
+.outfit-grid {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+}
+
+.outfit-card,
+.empty-state {
+    border: 1px solid #d8e2e7;
+    border-radius: 8px;
+    background: #fff;
+    padding: 18px;
+}
+
+.look-number {
+    display: inline-block;
+    margin-bottom: 10px;
+    color: #52738a;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.outfit-card h3 {
+    font-size: 1.08rem;
+}
+
+.outfit-card ul {
+    margin: 14px 0;
+    padding-left: 18px;
+}
+
+.outfit-card li + li {
+    margin-top: 5px;
+}
+
+.outfit-card p {
+    margin: 0;
+    color: #3f4d56;
+}
+
+.outfit-card small {
+    display: block;
+    margin-top: 12px;
+    color: #6c5b3e;
+    line-height: 1.5;
+}
+
+.empty-state {
+    grid-column: 1 / -1;
+    color: #65747d;
+}
+
+@media (max-width: 860px) {
+    .app-shell,
+    .outfit-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .weather-detail {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 520px) {
+    .app-shell {
+        width: min(100% - 20px, 1120px);
+        padding: 10px 0;
+    }
+
+    .location-row,
+    .weather-detail {
+        grid-template-columns: 1fr;
+    }
+}

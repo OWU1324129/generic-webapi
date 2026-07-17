@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>今日の天気コーデ</title>
+    <link rel="stylesheet" href="weather-outfit.css">
+</head>
+<body>
+    <main class="app-shell">
+        <section class="control-panel">
+            <div class="title-block">
+                <p>Weather Outfit Planner</p>
+                <h1>今日の天気コーデ</h1>
+            </div>
+
+            <form id="outfitForm" class="planner-form">
+                <label>
+                    天気を取得する場所
+                    <div class="location-row">
+                        <input id="city" type="text" value="東京" placeholder="例: 東京、大阪、New York">
+                        <button type="button" id="geoButton">現在地</button>
+                    </div>
+                </label>
+
+                <label>
+                    今日の予定
+                    <select id="occasion">
+                        <option value="通勤・通学">通勤・通学</option>
+                        <option value="友達と外出">友達と外出</option>
+                        <option value="デート">デート</option>
+                        <option value="買い物">買い物</option>
+                        <option value="屋外イベント">屋外イベント</option>
+                    </select>
+                </label>
+
+                <button type="submit" class="primary-button">天気からコーデを提案</button>
+            </form>
+        </section>
+
+        <section class="weather-panel">
+            <div class="section-head">
+                <div>
+                    <p>Today</p>
+                    <h2>今日の天気</h2>
+                </div>
+                <span id="weatherStatus">未取得</span>
+            </div>
+
+            <div class="weather-card" id="weatherCard">
+                <strong>天気データを取得してください</strong>
+                <p>場所と予定を選んで、今日の気温・降水・風をもとにコーデを作ります。</p>
+            </div>
+        </section>
+
+        <section class="outfit-panel">
+            <div class="section-head">
+                <div>
+                    <p>Looks</p>
+                    <h2>コーデ提案</h2>
+                </div>
+                <span>3案</span>
+            </div>
+
+            <div class="outfit-grid" id="outfitGrid">
+                <div class="empty-state">まだ提案はありません。</div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        let currentCoords = null;
+
+        document.getElementById('outfitForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            await generateOutfits();
+        });
+
+        document.getElementById('geoButton').addEventListener('click', () => {
+            if (!navigator.geolocation) {
+                setWeatherStatus('現在地を取得できません');
+                return;
+            }
+
+            setWeatherStatus('現在地を取得中');
+            navigator.geolocation.getCurrentPosition((position) => {
+                currentCoords = {
+                    lat: position.coords.latitude,
+                    lon: position.coords.longitude,
+                    name: '現在地'
+                };
+                document.getElementById('city').value = '現在地';
+                setWeatherStatus('現在地を使用');
+            }, () => {
+                currentCoords = null;
+                setWeatherStatus('現在地の取得に失敗');
+            });
+        });
+
+        async function generateOutfits() {
+            const occasion = document.getElementById('occasion').value;
+            setWeatherStatus('天気を取得中');
+            renderLoading();
+
+            try {
+                const weather = await fetchWeather();
+                renderWeather(weather);
+
+                const response = await fetch('/api/weather-outfits', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ weather, occasion })
+                });
+                const json = await response.json();
+                if (!response.ok) {
+                    throw new Error(json.error || 'コーデ提案に失敗しました。');
+                }
+
+                renderOutfits(json.data);
+                setWeatherStatus('提案完了');
+            } catch (error) {
+                setWeatherStatus('エラー');
+                document.getElementById('outfitGrid').innerHTML = `<div class="empty-state">${escapeHtml(error.message)}</div>`;
+            }
+        }
+
+        async function fetchWeather() {
+            const city = document.getElementById('city').value.trim();
+            let url;
+
+            if (currentCoords && city === '現在地') {
+                const params = new URLSearchParams({
+                    lat: String(currentCoords.lat),
+                    lon: String(currentCoords.lon),
+                    name: currentCoords.name
+                });
+                url = `/api/weather?${params.toString()}`;
+            } else {
+                currentCoords = null;
+                const params = new URLSearchParams({ city: city || '東京' });
+                url = `/api/weather?${params.toString()}`;
+            }
+
+            const response = await fetch(url);
+            const json = await response.json();
+            if (!response.ok) {
+                throw new Error(json.error || '天気データを取得できませんでした。');
+            }
+
+            return json.data;
+        }
+
+        function renderWeather(weather) {
+            const place = weather.country ? `${weather.location} / ${weather.country}` : weather.location;
+            document.getElementById('weatherCard').innerHTML = `
+                <div class="weather-main">
+                    <div>
+                        <strong>${escapeHtml(place)}</strong>
+                        <p>${escapeHtml(weather.weather)} / ${escapeHtml(weather.time || '')}</p>
+                    </div>
+                    <div class="temperature">${weather.temperature}<span>度</span></div>
+                </div>
+                <div class="weather-detail">
+                    <span>体感 ${weather.apparentTemperature}度</span>
+                    <span>湿度 ${weather.humidity}%</span>
+                    <span>降水 ${weather.precipitation}mm</span>
+                    <span>風速 ${weather.windSpeed}km/h</span>
+                </div>
+            `;
+        }
+
+        function renderOutfits(outfits) {
+            const grid = document.getElementById('outfitGrid');
+            grid.innerHTML = '';
+
+            outfits.forEach((outfit, index) => {
+                const card = document.createElement('article');
+                card.className = 'outfit-card';
+                card.innerHTML = `
+                    <span class="look-number">Look ${index + 1}</span>
+                    <h3>${escapeHtml(outfit.title)}</h3>
+                    <ul>${outfit.items.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+                    <p>${escapeHtml(outfit.point)}</p>
+                    <small>${escapeHtml(outfit.caution)}</small>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function renderLoading() {
+            document.getElementById('weatherCard').innerHTML = '<strong>取得中...</strong><p>外部天気APIから今日の天気を確認しています。</p>';
+            document.getElementById('outfitGrid').innerHTML = '<div class="empty-state">コーデを作成中...</div>';
+        }
+
+        function setWeatherStatus(text) {
+            document.getElementById('weatherStatus').textContent = text;
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>
