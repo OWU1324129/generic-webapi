@@ -93,6 +93,8 @@ app.post('/api/', async (req, res) => {
 app.post('/api/outfits', handleOutfitRequest);
 // 旧URLからの呼び出しが残っていても同じ処理で受ける
 app.post('/api/gifts', handleOutfitRequest);
+app.get('/api/weather', handleWeatherRequest);
+app.post('/api/weather-outfits', handleWeatherOutfitRequest);
 app.post('/api/idol/create', handleIdolCreateRequest);
 app.post('/api/idol/audition', handleIdolAuditionRequest);
 app.post('/api/idol/training', handleIdolTrainingRequest);
@@ -168,6 +170,320 @@ function throwBadRequest(message) {
     const error = new Error(message);
     error.statusCode = 400;
     throw error;
+}
+
+async function handleWeatherRequest(req, res) {
+    try {
+        const location = await resolveWeatherLocation(req.query);
+        const weather = await fetchCurrentWeather(location);
+
+        res.json({
+            title: '今日の天気',
+            data: weather,
+        });
+    } catch (error) {
+        console.error('Weather API Error:', error);
+        const status = error.statusCode || 500;
+        res.status(status).json({
+            error: status === 400
+                ? error.message
+                : '天気データの取得に失敗しました。'
+        });
+    }
+}
+
+function handleWeatherOutfitRequest(req, res) {
+    try {
+        const weather = validateWeatherData(req.body.weather);
+        const occasion = cleanText(req.body.occasion, 60);
+
+        if (!occasion) {
+            throwBadRequest('occasion is required');
+        }
+
+        res.json({
+            title: '今日のコーデ提案',
+            data: buildWeatherOutfits(weather, occasion),
+        });
+    } catch (error) {
+        console.error('Weather outfit API Error:', error);
+        const status = error.statusCode || 500;
+        res.status(status).json({
+            error: status === 400
+                ? error.message
+                : 'コーデ提案の生成に失敗しました。'
+        });
+    }
+}
+
+async function resolveWeatherLocation(query) {
+    const lat = Number(query.lat);
+    const lon = Number(query.lon);
+    const city = cleanText(query.city || '', 80);
+
+    if (Number.isFinite(lat) && Number.isFinite(lon)) {
+        return {
+            latitude: lat,
+            longitude: lon,
+            name: cleanText(query.name || '現在地', 80) || '現在地',
+            country: cleanText(query.country || '', 40),
+        };
+    }
+
+    if (!city) {
+        throwBadRequest('city or lat/lon is required');
+    }
+
+    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=ja&format=json`;
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error('Geocoding API error');
+    }
+
+    const data = await response.json();
+    const result = data.results && data.results[0];
+    if (!result) {
+        throwBadRequest('city was not found');
+    }
+
+    return {
+        latitude: result.latitude,
+        longitude: result.longitude,
+        name: result.name,
+        country: result.country || '',
+    };
+}
+
+async function fetchCurrentWeather(location) {
+    const params = new URLSearchParams({
+        latitude: String(location.latitude),
+        longitude: String(location.longitude),
+        current: 'temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m',
+        timezone: 'auto',
+    });
+    const response = await fetch(`https://api.open-meteo.com/v1/forecast?${params.toString()}`);
+    if (!response.ok) {
+        throw new Error('Forecast API error');
+    }
+
+    const data = await response.json();
+    const current = data.current;
+    if (!current) {
+        throw new Error('Forecast API returned no current weather');
+    }
+
+    return {
+        location: location.name,
+        country: location.country,
+        time: current.time,
+        temperature: Math.round(Number(current.temperature_2m)),
+        apparentTemperature: Math.round(Number(current.apparent_temperature)),
+        humidity: Math.round(Number(current.relative_humidity_2m)),
+        precipitation: Number(current.precipitation || 0),
+        windSpeed: Math.round(Number(current.wind_speed_10m)),
+        weatherCode: Number(current.weather_code),
+        weather: weatherCodeToLabel(Number(current.weather_code)),
+    };
+}
+
+function validateWeatherData(value) {
+    if (!value || typeof value !== 'object') {
+        throwBadRequest('weather is required');
+    }
+
+    return {
+        location: cleanText(value.location || '取得地点', 80),
+        country: cleanText(value.country || '', 40),
+        time: cleanText(value.time || '', 40),
+        temperature: Number(value.temperature),
+        apparentTemperature: Number(value.apparentTemperature),
+        humidity: Number(value.humidity),
+        precipitation: Number(value.precipitation || 0),
+        windSpeed: Number(value.windSpeed || 0),
+        weatherCode: Number(value.weatherCode || 0),
+        weather: cleanText(value.weather || '不明', 40),
+    };
+}
+
+function buildWeatherOutfits(weather, occasion) {
+    const weatherFlags = getWeatherFlags(weather);
+    const base = getTemperatureBase(weather.apparentTemperature);
+    const occasionSet = getOccasionSet(occasion);
+    const weatherItems = getWeatherItems(weatherFlags);
+
+    return [
+        {
+            title: `${occasionSet.label}の定番バランス`,
+            items: [base.top, base.bottom, base.outer, occasionSet.shoes, weatherItems.main].filter(Boolean),
+            point: `${weather.weather}・体感${weather.apparentTemperature}度に合わせて、温度調整しやすい組み合わせです。`,
+            caution: weatherItems.caution,
+        },
+        {
+            title: 'きれいめ寄せ',
+            items: [base.cleanTop, occasionSet.cleanBottom, base.lightOuter, occasionSet.cleanShoes, weatherItems.sub].filter(Boolean),
+            point: `${occasionSet.label}でも崩れすぎない印象に寄せます。屋内外の移動がある日向けです。`,
+            caution: weather.windSpeed >= 25 ? '風が強めなので、広がりやすい服や軽すぎる帽子は避けると安定します。' : weatherItems.caution,
+        },
+        {
+            title: '動きやすさ重視',
+            items: [base.easyTop, base.easyBottom, occasionSet.easyShoes, weatherItems.main, weatherItems.extra].filter(Boolean),
+            point: `歩く時間が長くなっても疲れにくい構成です。${base.temperatureNote}`,
+            caution: weather.humidity >= 75 ? '湿度が高いので、肌離れのよい素材を選ぶと不快感が減ります。' : weatherItems.caution,
+        },
+    ];
+}
+
+function getWeatherFlags(weather) {
+    return {
+        rainy: weather.precipitation > 0 || [51, 53, 55, 61, 63, 65, 80, 81, 82, 95, 96, 99].includes(weather.weatherCode),
+        snowy: [71, 73, 75, 77, 85, 86].includes(weather.weatherCode),
+        windy: weather.windSpeed >= 25,
+        humid: weather.humidity >= 75,
+    };
+}
+
+function getTemperatureBase(apparentTemperature) {
+    if (apparentTemperature <= 5) {
+        return {
+            top: '厚手ニット',
+            cleanTop: 'タートルネック',
+            easyTop: '保温インナーとスウェット',
+            bottom: '裏起毛パンツ',
+            easyBottom: '暖かいストレートパンツ',
+            outer: 'ダウンまたは中綿コート',
+            lightOuter: 'ウールコート',
+            temperatureNote: '体感温度が低いので、防寒を優先してください。',
+        };
+    }
+    if (apparentTemperature <= 14) {
+        return {
+            top: '長袖カットソー',
+            cleanTop: '薄手ニット',
+            easyTop: 'ロンTとシャツ',
+            bottom: 'デニムまたはチノパン',
+            easyBottom: 'ゆとりのあるパンツ',
+            outer: '軽めのジャケット',
+            lightOuter: 'カーディガン',
+            temperatureNote: '朝晩の冷えに備えて羽織りを持つと安定します。',
+        };
+    }
+    if (apparentTemperature <= 23) {
+        return {
+            top: '薄手シャツ',
+            cleanTop: 'ブラウスまたはきれいめシャツ',
+            easyTop: '通気性のよいTシャツ',
+            bottom: 'ワイドパンツ',
+            easyBottom: 'イージーパンツ',
+            outer: '薄手カーディガン',
+            lightOuter: 'シャツジャケット',
+            temperatureNote: '日中は軽め、屋内の冷房対策に薄い羽織りが便利です。',
+        };
+    }
+    return {
+        top: '半袖トップス',
+        cleanTop: 'さらっとした半袖シャツ',
+        easyTop: '吸湿速乾Tシャツ',
+        bottom: '軽い素材のパンツ',
+        easyBottom: '薄手パンツ',
+        outer: '',
+        lightOuter: '薄手の羽織り',
+        temperatureNote: '暑さ対策として通気性と汗処理を優先してください。',
+    };
+}
+
+function getOccasionSet(occasion) {
+    const sets = {
+        '通勤・通学': {
+            label: '通勤・通学',
+            shoes: '歩きやすい革靴またはスニーカー',
+            cleanBottom: 'センタープレスパンツ',
+            cleanShoes: 'ローファー',
+            easyShoes: 'クッション性のあるスニーカー',
+        },
+        '友達と外出': {
+            label: '友達と外出',
+            shoes: 'スニーカー',
+            cleanBottom: 'きれいめデニム',
+            cleanShoes: 'フラットシューズ',
+            easyShoes: '履き慣れたスニーカー',
+        },
+        'デート': {
+            label: 'デート',
+            shoes: '上品なフラットシューズ',
+            cleanBottom: '落ち感のあるパンツまたはスカート',
+            cleanShoes: 'ローファーまたはパンプス',
+            easyShoes: 'きれいめスニーカー',
+        },
+        '買い物': {
+            label: '買い物',
+            shoes: '歩きやすいスニーカー',
+            cleanBottom: '動きやすいテーパードパンツ',
+            cleanShoes: '軽いローファー',
+            easyShoes: 'クッション性の高いスニーカー',
+        },
+        '屋外イベント': {
+            label: '屋外イベント',
+            shoes: '汚れに強いスニーカー',
+            cleanBottom: '動きやすいパンツ',
+            cleanShoes: '防水寄りのシューズ',
+            easyShoes: '滑りにくいスニーカー',
+        },
+    };
+
+    return sets[occasion] || sets['友達と外出'];
+}
+
+function getWeatherItems(flags) {
+    if (flags.snowy) {
+        return {
+            main: '防滑シューズ',
+            sub: '撥水アウター',
+            extra: '手袋',
+            caution: '雪対策として滑りにくい靴と撥水素材を優先してください。',
+        };
+    }
+    if (flags.rainy) {
+        return {
+            main: '折りたたみ傘',
+            sub: '撥水バッグ',
+            extra: '濡れても乾きやすい素材',
+            caution: '雨に備えて、裾が長すぎるボトムスや水に弱い靴は避けると安心です。',
+        };
+    }
+    if (flags.windy) {
+        return {
+            main: '風を通しにくい羽織り',
+            sub: 'コンパクトなバッグ',
+            extra: '',
+            caution: '風が強いので、収まりのよいシルエットがおすすめです。',
+        };
+    }
+    if (flags.humid) {
+        return {
+            main: 'リネン・ドライ素材',
+            sub: '汗じみが目立ちにくい色',
+            extra: '',
+            caution: '湿度が高いため、厚手素材や重ね着しすぎは避けてください。',
+        };
+    }
+    return {
+        main: '小物は軽め',
+        sub: '季節感のあるバッグ',
+        extra: '',
+        caution: '大きな天気リスクは少ないので、予定に合わせた動きやすさを優先できます。',
+    };
+}
+
+function weatherCodeToLabel(code) {
+    if (code === 0) return '快晴';
+    if ([1, 2].includes(code)) return '晴れ';
+    if (code === 3) return '曇り';
+    if ([45, 48].includes(code)) return '霧';
+    if ([51, 53, 55, 56, 57].includes(code)) return '霧雨';
+    if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return '雨';
+    if ([71, 73, 75, 77, 85, 86].includes(code)) return '雪';
+    if ([95, 96, 99].includes(code)) return '雷雨';
+    return '不明';
 }
 
 function handleIdolCreateRequest(req, res) {
@@ -270,7 +586,7 @@ function validateIdolAuditionRequest(body) {
 function validateIdolTrainingRequest(body) {
     const idol = body.idol;
     const trainingType = cleanText(body.trainingType, 40);
-    const allowedTypes = ['vocal', 'dance', 'rap', 'expression', 'stamina', 'balanced'];
+    const allowedTypes = ['vocal', 'dance', 'rap', 'expression', 'stamina', 'balanced', 'rest'];
 
     if (!idol || typeof idol !== 'object') {
         throwBadRequest('idol is required');
@@ -319,6 +635,9 @@ function createIdol(input) {
         rank: '練習生',
         debutReady: false,
         debuted: false,
+        fatigue: 12,
+        morale: 68,
+        festivalPasses: 0,
         pendingTraining: null,
         history: []
     };
@@ -329,19 +648,31 @@ function runAudition(idol, auditionType) {
     const audition = getAuditionConfig(auditionType);
     const average = weightedScore(current.stats, audition.weights);
     const experience = Math.min(12, current.auditions * 2);
-    const score = Math.round(average + experience + deterministicSwing(current.id, current.auditions, auditionType));
+    const condition = calculateCondition(current);
+    const score = clampScore(Math.round(average + experience + condition.scoreModifier + deterministicSwing(current.id, current.auditions, auditionType)));
     const passed = auditionType === 'debut'
-        ? score >= 86 && current.fans >= 5000 && current.auditions >= 5
+        ? isDebutReady(current)
         : score >= audition.passLine;
     const growth = calculateGrowth(current, audition, passed);
     const updatedStats = applyGrowth(current.stats, growth);
     const gainedFans = Math.max(20, Math.round((passed ? audition.fans : audition.fans * 0.42) + score * audition.fanRate));
     const nextFans = current.fans + gainedFans;
     const nextAuditions = current.auditions + 1;
+    const nextFestivalPasses = current.festivalPasses + (auditionType === 'festival' && passed ? 1 : 0);
+    const nextFatigue = clampMeter(current.fatigue + audition.fatigue + (passed ? 4 : 8));
+    const nextMorale = clampMeter(current.morale + (passed ? audition.morale : -10));
     const nextRank = decideRank(nextFans, updatedStats, passed, auditionType);
     const debuted = current.debuted || (auditionType === 'debut' && passed);
-    const debutReady = debuted || (nextFans >= 5000 && averageStat(updatedStats) >= 80 && nextAuditions >= 5);
-    const improvement = analyzeImprovement(current, audition, score, passed);
+    const debutReady = debuted || isDebutReady({
+        ...current,
+        stats: updatedStats,
+        fans: nextFans,
+        auditions: nextAuditions,
+        festivalPasses: nextFestivalPasses,
+        fatigue: nextFatigue,
+        morale: nextMorale
+    });
+    const improvement = analyzeImprovement(current, audition, score, passed, condition);
     const historyItem = {
         type: 'audition',
         week: current.weeks,
@@ -349,6 +680,8 @@ function runAudition(idol, auditionType) {
         score,
         passed,
         fans: gainedFans,
+        fatigue: nextFatigue - current.fatigue,
+        morale: nextMorale - current.morale,
         comment: buildJudgeComment(current, audition, score, passed, growth),
         improvement
     };
@@ -361,6 +694,9 @@ function runAudition(idol, auditionType) {
         rank: debuted ? 'デビュー決定' : nextRank,
         debutReady,
         debuted,
+        fatigue: nextFatigue,
+        morale: nextMorale,
+        festivalPasses: nextFestivalPasses,
         pendingTraining: debuted ? null : improvement.training,
         history: [historyItem, ...current.history].slice(0, 8)
     };
@@ -382,13 +718,23 @@ function trainIdol(idol, trainingType) {
     const growth = calculateTrainingGrowth(trainingType, current);
     const updatedStats = applyGrowth(current.stats, growth);
     const nextFans = current.fans + training.fans;
-    const debutReady = nextFans >= 5000 && averageStat(updatedStats) >= 80 && current.auditions >= 5;
+    const nextFatigue = clampMeter(current.fatigue + training.fatigue);
+    const nextMorale = clampMeter(current.morale + training.morale);
+    const debutReady = isDebutReady({
+        ...current,
+        stats: updatedStats,
+        fans: nextFans,
+        fatigue: nextFatigue,
+        morale: nextMorale
+    });
     const historyItem = {
         type: 'training',
         week: current.weeks,
         name: training.name,
         growth,
         fans: training.fans,
+        fatigue: nextFatigue - current.fatigue,
+        morale: nextMorale - current.morale,
         comment: buildTrainingComment(trainingType, growth)
     };
     const updatedIdol = {
@@ -398,6 +744,8 @@ function trainIdol(idol, trainingType) {
         weeks: current.weeks + 1,
         rank: decideRank(nextFans, updatedStats, false, 'training'),
         debutReady,
+        fatigue: nextFatigue,
+        morale: nextMorale,
         pendingTraining: null,
         history: [historyItem, ...current.history].slice(0, 8)
     };
@@ -426,6 +774,9 @@ function normalizeIdol(idol) {
         rank: cleanText(idol.rank || '練習生', 40),
         debutReady: Boolean(idol.debutReady),
         debuted: Boolean(idol.debuted),
+        fatigue: clampMeter(Number(idol.fatigue) || 0),
+        morale: clampMeter(Number(idol.morale) || 50),
+        festivalPasses: Math.max(0, Number(idol.festivalPasses) || 0),
         pendingTraining: idol.pendingTraining && typeof idol.pendingTraining === 'object'
             ? idol.pendingTraining
             : null,
@@ -451,6 +802,8 @@ function getAuditionConfig(type) {
             fans: 260,
             fanRate: 3,
             growth: 5,
+            fatigue: 12,
+            morale: 7,
             weights: { vocal: 1, dance: 1, rap: 0.5, expression: 1.2, stamina: 0.8 }
         },
         media: {
@@ -459,6 +812,8 @@ function getAuditionConfig(type) {
             fans: 620,
             fanRate: 5,
             growth: 6,
+            fatigue: 16,
+            morale: 9,
             weights: { vocal: 1.2, dance: 0.7, rap: 0.7, expression: 1.4, stamina: 0.8 }
         },
         festival: {
@@ -467,14 +822,18 @@ function getAuditionConfig(type) {
             fans: 1200,
             fanRate: 8,
             growth: 8,
+            fatigue: 22,
+            morale: 12,
             weights: { vocal: 1.1, dance: 1.3, rap: 0.9, expression: 1, stamina: 1.2 }
         },
         debut: {
             name: 'デビュー最終審査',
-            passLine: 86,
+            passLine: 88,
             fans: 2600,
             fanRate: 12,
             growth: 10,
+            fatigue: 28,
+            morale: 18,
             weights: { vocal: 1.2, dance: 1.2, rap: 1, expression: 1.2, stamina: 1 }
         }
     };
@@ -512,29 +871,53 @@ function applyGrowth(stats, growth) {
 
 function getTrainingConfig(type) {
     const labels = getStatLabels();
+    if (type === 'rest') {
+        return {
+            name: '休養とコンディション調整',
+            label: '休養',
+            fans: 15,
+            fatigue: -32,
+            morale: 12
+        };
+    }
     if (type === 'balanced') {
         return {
             name: '総合リハーサル',
             label: '総合',
-            fans: 70
+            fans: 70,
+            fatigue: 14,
+            morale: -1
         };
     }
 
     return {
         name: `${labels[type]}集中レッスン`,
         label: labels[type],
-        fans: 45
+        fans: 45,
+        fatigue: 18,
+        morale: -3
     };
 }
 
 function calculateTrainingGrowth(trainingType, idol) {
+    if (trainingType === 'rest') {
+        return {
+            vocal: 0,
+            dance: 0,
+            rap: 0,
+            expression: 0,
+            stamina: 0
+        };
+    }
+    const conditionPenalty = idol.fatigue >= 80 ? -3 : idol.fatigue >= 60 ? -1 : 0;
+    const moraleBonus = idol.morale >= 75 ? 1 : idol.morale <= 30 ? -1 : 0;
     if (trainingType === 'balanced') {
         return {
-            vocal: 3,
-            dance: 3,
-            rap: 3,
-            expression: 3,
-            stamina: 3
+            vocal: Math.max(1, 3 + moraleBonus + conditionPenalty),
+            dance: Math.max(1, 3 + moraleBonus + conditionPenalty),
+            rap: Math.max(1, 3 + moraleBonus + conditionPenalty),
+            expression: Math.max(1, 3 + moraleBonus + conditionPenalty),
+            stamina: Math.max(1, 3 + moraleBonus + conditionPenalty)
         };
     }
 
@@ -546,7 +929,7 @@ function calculateTrainingGrowth(trainingType, idol) {
         stamina: 1
     };
     const specialtyKey = normalizeSpecialty(idol.specialty);
-    growth[trainingType] = trainingType === specialtyKey ? 9 : 7;
+    growth[trainingType] = Math.max(2, (trainingType === specialtyKey ? 9 : 7) + moraleBonus + conditionPenalty);
 
     if (trainingType === 'vocal') {
         growth.expression += 2;
@@ -567,9 +950,10 @@ function calculateTrainingGrowth(trainingType, idol) {
     return growth;
 }
 
-function analyzeImprovement(idol, audition, score, passed) {
+function analyzeImprovement(idol, audition, score, passed, condition) {
     const labels = getStatLabels();
-    const focusStat = Object.entries(audition.weights)
+    const lowConditionStat = condition.ready ? null : (idol.fatigue >= 72 ? 'stamina' : 'expression');
+    const focusStat = lowConditionStat || Object.entries(audition.weights)
         .map(([stat, weight]) => ({
             stat,
             priority: (100 - idol.stats[stat]) * weight,
@@ -578,9 +962,10 @@ function analyzeImprovement(idol, audition, score, passed) {
         .sort((a, b) => b.priority - a.priority)[0].stat;
     const focusLabel = labels[focusStat];
     const gap = Math.max(0, audition.passLine - score);
+    const conditionText = condition.ready ? '' : ` ただし${condition.message}`;
     const reason = passed
         ? `合格していますが、次の上位審査では${focusLabel}の完成度が差になります。`
-        : `合格ラインまであと${gap}点。今回の審査配点では${focusLabel}が一番伸びしろです。`;
+        : `合格ラインまであと${gap}点。今回の審査配点では${focusLabel}が一番伸びしろです。${conditionText}`;
 
     return {
         focusStat,
@@ -612,6 +997,9 @@ function buildTrainingComment(trainingType, growth) {
     const labels = getStatLabels();
     const strongest = Object.entries(growth).sort((a, b) => b[1] - a[1])[0][0];
 
+    if (trainingType === 'rest') {
+        return '休養で疲労を抜き、士気を立て直しました。無理に詰め込むより次の審査の点が安定します。';
+    }
     if (trainingType === 'balanced') {
         return '全体リハーサルで基礎をまんべんなく確認しました。次の審査で崩れにくくなります。';
     }
@@ -628,6 +1016,51 @@ function weightedScore(stats, weights) {
 
 function averageStat(stats) {
     return Math.round((stats.vocal + stats.dance + stats.rap + stats.expression + stats.stamina) / 5);
+}
+
+function minStat(stats) {
+    return Math.min(stats.vocal, stats.dance, stats.rap, stats.expression, stats.stamina);
+}
+
+function calculateCondition(idol) {
+    const fatiguePenalty = idol.fatigue >= 85 ? -16 : idol.fatigue >= 70 ? -10 : idol.fatigue >= 55 ? -5 : 0;
+    const moraleModifier = idol.morale >= 80 ? 6 : idol.morale >= 65 ? 3 : idol.morale <= 25 ? -8 : idol.morale <= 40 ? -4 : 0;
+    const ready = idol.fatigue < 75 && idol.morale >= 35;
+    const message = idol.fatigue >= 75
+        ? '疲労が高く、本番で動きが落ちています。'
+        : idol.morale < 35
+            ? '士気が低く、表情と集中力が不安定です。'
+            : 'コンディションは安定しています。';
+
+    return {
+        ready,
+        scoreModifier: fatiguePenalty + moraleModifier,
+        message
+    };
+}
+
+function isDebutReady(idol) {
+    return hasMaxStatAndAverageOthers(idol.stats);
+}
+
+function hasMaxStatAndAverageOthers(stats) {
+    const values = [stats.vocal, stats.dance, stats.rap, stats.expression, stats.stamina].map(Number);
+    const maxIndex = values.findIndex(value => value >= 100);
+    if (maxIndex === -1) {
+        return false;
+    }
+
+    const others = values.filter((value, index) => index !== maxIndex);
+    const othersAverage = others.reduce((sum, value) => sum + value, 0) / others.length;
+    return othersAverage >= 75;
+}
+
+function clampMeter(value) {
+    return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function clampScore(value) {
+    return Math.max(0, Math.min(100, Math.round(value)));
 }
 
 function deterministicSwing(id, auditions, type) {

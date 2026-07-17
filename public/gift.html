@@ -275,6 +275,8 @@
             giftList.innerHTML = '';
 
             outfitData.forEach((outfit, index) => {
+                const shoppingLinks = buildShoppingLinks(outfit);
+                const colorPalette = buildColorPalette(outfit);
                 const item = document.createElement('div');
                 item.className = 'gift-result-card';
                 item.innerHTML = `
@@ -289,6 +291,15 @@
                         </div>
                     </div>
                     <p class="gift-reason">${escapeHtml(outfit.summary)}</p>
+                    <div class="gift-color-palette" aria-label="このコーディネートのキーカラー">
+                        ${colorPalette.map(color => `
+                            <div class="gift-color-chip">
+                                <span class="gift-color-swatch" style="background:${escapeHtml(color.hex)}" aria-hidden="true"></span>
+                                <span class="gift-color-role">${escapeHtml(color.role)}</span>
+                                <strong>${escapeHtml(color.name)}</strong>
+                            </div>
+                        `).join('')}
+                    </div>
                     <div class="gift-detail-grid">
                         <section>
                             <h4>トップス</h4>
@@ -315,9 +326,201 @@
                             <p>${escapeHtml(outfit.stylingTip)}</p>
                         </section>
                     </div>
+                    <div class="gift-shopping">
+                        <div class="gift-shopping-copy">
+                            <h4>似た商品をZOZOTOWNで探す</h4>
+                            <p>気に入ったパーツから、そのまま近い商品を探せます。</p>
+                        </div>
+                        <div class="gift-shopping-links">
+                            ${shoppingLinks.map(link => `
+                                <a class="gift-shop-link" href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer" aria-label="ZOZOTOWNで${escapeHtml(link.query)}を探す">
+                                    <span>${escapeHtml(link.label)}</span>
+                                    <strong>${escapeHtml(link.query)}</strong>
+                                </a>
+                            `).join('')}
+                        </div>
+                    </div>
                 `;
                 giftList.appendChild(item);
             });
+        }
+
+        function buildColorPalette(outfit) {
+            const colorMap = [
+                { name: '白', hex: '#f8f7f2', aliases: ['白', 'ホワイト'] },
+                { name: '黒', hex: '#232323', aliases: ['黒', 'ブラック'] },
+                { name: 'グレー', hex: '#8d9499', aliases: ['グレー', 'ライトグレー', 'チャコール'] },
+                { name: 'ネイビー', hex: '#263a59', aliases: ['ネイビー', '紺'] },
+                { name: 'ベージュ', hex: '#c9b596', aliases: ['ベージュ'] },
+                { name: 'ブラウン', hex: '#7a5238', aliases: ['ブラウン', '茶'] },
+                { name: 'カーキ', hex: '#6d7354', aliases: ['カーキ', 'オリーブ'] },
+                { name: 'ブルー', hex: '#5b82b1', aliases: ['ブルー', '青'] },
+                { name: 'ライトブルー', hex: '#a8c7dd', aliases: ['ライトブルー', '水色'] },
+                { name: 'グリーン', hex: '#4f7c62', aliases: ['グリーン', '緑'] },
+                { name: 'ピンク', hex: '#d99aa7', aliases: ['ピンク'] },
+                { name: '赤', hex: '#b84f45', aliases: ['赤', 'レッド'] },
+                { name: 'アイボリー', hex: '#ede3cf', aliases: ['アイボリー', '生成り'] }
+            ];
+            const roles = ['メイン', 'サブ', 'アクセント'];
+            const keyColors = outfit.keyColors || {};
+            const explicitColors = [keyColors.main, keyColors.sub, keyColors.accent]
+                .map(colorName => findColorDefinition(colorMap, colorName))
+                .filter(Boolean);
+            const text = [
+                outfit.name,
+                outfit.summary,
+                outfit.tops,
+                outfit.bottoms,
+                outfit.shoesAndAccessories,
+                outfit.outerwear,
+                outfit.stylingTip
+            ].join(' ');
+            const picked = explicitColors.slice();
+
+            colorMap.forEach(color => {
+                if (color.aliases.some(alias => text.includes(alias)) && !picked.some(item => item.name === color.name)) {
+                    picked.push(color);
+                }
+            });
+
+            const fallback = [
+                { name: 'ネイビー', hex: '#263a59' },
+                { name: 'アイボリー', hex: '#ede3cf' },
+                { name: 'ブラウン', hex: '#7a5238' }
+            ];
+
+            return roles.map((role, index) => {
+                const color = picked[index] || fallback[index];
+                return { role: role, name: color.name, hex: color.hex };
+            });
+        }
+
+        function findColorDefinition(colorMap, colorName) {
+            const name = String(colorName || '');
+            return colorMap.find(color => color.aliases.some(alias => name.includes(alias)));
+        }
+
+        function buildShoppingLinks(outfit) {
+            const targets = [
+                { label: 'トップス', text: outfit.tops },
+                { label: 'ボトムス', text: outfit.bottoms },
+                { label: '靴・小物', text: outfit.shoesAndAccessories },
+                { label: '羽織り', text: outfit.outerwear }
+            ];
+
+            return targets.map(target => {
+                const query = buildZozoQuery(target.text, target.label);
+                return {
+                    label: target.label,
+                    query: query,
+                    url: `https://zozo.jp/search/?p_keyv=${encodeZozoKeyword(query)}`
+                };
+            });
+        }
+
+        function buildZozoQuery(text, fallback) {
+            const normalized = String(text || fallback)
+                .replace(/[、。,.・／/()（）「」『』【】]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+            const colors = [
+                '白', '黒', 'グレー', 'ネイビー', 'ベージュ', 'ブラウン', 'カーキ',
+                'ブルー', 'ライトブルー', 'グリーン', 'ピンク', '赤', 'アイボリー'
+            ];
+            const details = [
+                '撥水', '防水', '軽量', '薄手', '厚手', 'リネン', 'コットン', 'デニム',
+                'ニット', 'レザー', 'ナイロン', 'ウール', 'ストレッチ', 'ワイド', 'テーパード'
+            ];
+            const items = [
+                'Tシャツ', 'カットソー', 'シャツ', 'ブラウス', 'ニット', 'スウェット',
+                'カーディガン', 'パーカー', 'ジャケット', 'ブルゾン', 'コート',
+                'スラックス', 'パンツ', 'デニム', 'スカート', 'ワンピース',
+                'スニーカー', 'ローファー', 'ブーツ', 'サンダル', 'パンプス',
+                'バッグ', 'キャップ', '帽子', '傘', 'ストール', 'マフラー'
+            ];
+
+            const picked = [];
+            [colors, details, items].forEach(group => {
+                group.forEach(word => {
+                    if (normalized.includes(word) && !picked.includes(word)) {
+                        picked.push(word);
+                    }
+                });
+            });
+
+            if (picked.length > 0) {
+                return picked.slice(0, 4).join(' ');
+            }
+
+            return normalized
+                .replace(/(を|に|と|で|の|が|は|も|合わせる|使う|選ぶ|羽織る|おすすめ)/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .slice(0, 32) || fallback;
+        }
+
+        function encodeZozoKeyword(query) {
+            const shiftJisMap = {
+                '白': '%94%92',
+                '黒': '%8D%95',
+                'グレー': '%83O%83%8C%81%5B',
+                'ネイビー': '%83l%83C%83r%81%5B',
+                'ベージュ': '%83x%81%5B%83W%83%85',
+                'ブラウン': '%83u%83%89%83E%83%93',
+                'カーキ': '%83J%81%5B%83L',
+                'ブルー': '%83u%83%8B%81%5B',
+                'ライトブルー': '%83%89%83C%83g%83u%83%8B%81%5B',
+                'グリーン': '%83O%83%8A%81%5B%83%93',
+                'ピンク': '%83s%83%93%83N',
+                '赤': '%90%D4',
+                'アイボリー': '%83A%83C%83%7B%83%8A%81%5B',
+                '撥水': '%9D%9B%90%85',
+                '防水': '%96h%90%85',
+                '軽量': '%8Cy%97%CA',
+                '薄手': '%94%96%8E%E8',
+                '厚手': '%8C%FA%8E%E8',
+                'リネン': '%83%8A%83l%83%93',
+                'コットン': '%83R%83b%83g%83%93',
+                'デニム': '%83f%83j%83%80',
+                'ニット': '%83j%83b%83g',
+                'レザー': '%83%8C%83U%81%5B',
+                'ナイロン': '%83i%83C%83%8D%83%93',
+                'ウール': '%83E%81%5B%83%8B',
+                'ストレッチ': '%83X%83g%83%8C%83b%83%60',
+                'ワイド': '%83%8F%83C%83h',
+                'テーパード': '%83e%81%5B%83p%81%5B%83h',
+                'Tシャツ': 'T%83V%83%83%83c',
+                'カットソー': '%83J%83b%83g%83%5C%81%5B',
+                'シャツ': '%83V%83%83%83c',
+                'ブラウス': '%83u%83%89%83E%83X',
+                'スウェット': '%83X%83E%83F%83b%83g',
+                'カーディガン': '%83J%81%5B%83f%83B%83K%83%93',
+                'パーカー': '%83p%81%5B%83J%81%5B',
+                'ジャケット': '%83W%83%83%83P%83b%83g',
+                'ブルゾン': '%83u%83%8B%83%5D%83%93',
+                'コート': '%83R%81%5B%83g',
+                'スラックス': '%83X%83%89%83b%83N%83X',
+                'パンツ': '%83p%83%93%83c',
+                'スカート': '%83X%83J%81%5B%83g',
+                'ワンピース': '%83%8F%83%93%83s%81%5B%83X',
+                'スニーカー': '%83X%83j%81%5B%83J%81%5B',
+                'ローファー': '%83%8D%81%5B%83t%83%40%81%5B',
+                'ブーツ': '%83u%81%5B%83c',
+                'サンダル': '%83T%83%93%83%5F%83%8B',
+                'パンプス': '%83p%83%93%83v%83X',
+                'バッグ': '%83o%83b%83O',
+                'キャップ': '%83L%83%83%83b%83v',
+                '帽子': '%96X%8Eq',
+                '傘': '%8EP',
+                'ストール': '%83X%83g%81%5B%83%8B',
+                'マフラー': '%83%7D%83t%83%89%81%5B'
+            };
+
+            return String(query || '')
+                .split(/\s+/)
+                .filter(Boolean)
+                .map(word => shiftJisMap[word] || encodeURIComponent(word))
+                .join('%20');
         }
 
         function restartGift() {
