@@ -1,5 +1,5 @@
 {
-  "name": "generic-webapi",
+  "name": "last-webapi",
   "version": "1.0.0",
   "description": "Generic Web API for LLM integration",
   "main": "server.js",
